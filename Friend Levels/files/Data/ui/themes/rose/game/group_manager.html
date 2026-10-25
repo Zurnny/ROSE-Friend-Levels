@@ -43,6 +43,7 @@
 pcall(function()
     local document = document
     local CACHE_FILE, cache, dirty = 'sp_level_cache.txt', {}, false
+    local mine = {}   -- levels this window saw itself
     pcall(function()
         local f = io.open(CACHE_FILE, 'r')
         if not f then return end
@@ -56,10 +57,19 @@ pcall(function()
         if not dirty then return end
         dirty = false
         pcall(function()
-            local f = io.open(CACHE_FILE, 'w')
-            if not f then return end
-            for name, lvl in pairs(cache) do f:write(name, '=', lvl, '\n') end
-            f:close()
+            -- merge in what the level catcher saved meanwhile, keeping our newer levels
+            local f = io.open(CACHE_FILE, 'r')
+            if f then
+                for line in f:lines() do
+                    local name, lvl = line:match('^(.-)=(%d+)%s*$')
+                    if name and name ~= '' and not mine[name] then cache[name] = tonumber(lvl) end
+                end
+                f:close()
+            end
+            local w = io.open(CACHE_FILE, 'w')
+            if not w then return end
+            for name, lvl in pairs(cache) do w:write(name, '=', lvl, '\n') end
+            w:close()
         end)
     end
     local function each(list, fn)
@@ -77,10 +87,23 @@ pcall(function()
             slot.inner_rml = '<div data-model="clan"><span class="sp-lv-src" data-for="m : members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div>'
         end)
     end
+    local function reload()
+        -- pick up levels the level catcher saved since this window loaded
+        pcall(function()
+            local f = io.open(CACHE_FILE, 'r')
+            if not f then return end
+            for line in f:lines() do
+                local name, lvl = line:match('^(.-)=(%d+)%s*$')
+                if name and name ~= '' and not mine[name] then cache[name] = tonumber(lvl) end
+            end
+            f:close()
+        end)
+    end
     local function refresh()
+        reload()
         each(document:QuerySelectorAll('.sp-lv-src'), function(e)
             local name, lvl = e:GetAttribute('sp-name'), tonumber(e:GetAttribute('sp-level'))
-            if name and name ~= '' and lvl and lvl > 1 and cache[name] ~= lvl then cache[name] = lvl; dirty = true end
+            if name and name ~= '' and lvl and lvl > 1 and cache[name] ~= lvl then cache[name] = lvl; mine[name] = true; dirty = true end
         end)
         save()
         each(document:QuerySelectorAll('.sp-friend-level'), function(e)

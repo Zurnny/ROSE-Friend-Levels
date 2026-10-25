@@ -48,10 +48,14 @@
 @keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
 @keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
 #sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
+            #sp-catch-slot { display: none; }
+            @keyframes sp-catch-tick-a { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-catch-tick-b { from { opacity: 0; } to { opacity: 0; } }
+            #sp-catch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 8s sp-catch-tick-a; }
         </style>
         <script>
 -- Friend levels (add-on). Shows each friend's level as remembered by
--- the Group Manager (sp_level_cache.txt): levels seen in your group and clan.
+-- the level catcher below and the Group Manager (sp_level_cache.txt).
 -- Friends it has never seen show no level. Updates when the window opens and
 -- when the mouse moves over it (never on a timer, so no mid-frame text).
 pcall(function()
@@ -166,6 +170,81 @@ pcall(function()
     end)
 end)
     </script>
+    <script>
+-- Level catcher (Friend Levels add-on). From the moment you are in game it
+-- quietly reads levels from every list the game already has: your clan's
+-- member list, the Game Arena (group, friends, clan) and the Party Finder's
+-- adverts. Every name with a real level goes into sp_level_cache.txt, so
+-- friends get their levels without opening the Group Manager first.
+-- The lists are added about 15 seconds after this window loads (adding them
+-- straight away, before you are in game, makes the game log "Could not
+-- locate data model"). It only reads attributes, never draws text, and
+-- checks every 10 seconds.
+pcall(function()
+    local document = document
+    local FILE = 'sp_level_cache.txt'
+    local SOURCES = '<div data-model="clan"><span class="sp-catch-src" data-for="m : members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div>'
+        .. '<div data-model="game-arena"><span class="sp-catch-src" data-for="m : members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span>'
+        .. '<span class="sp-catch-src" data-for="m : friends" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span>'
+        .. '<span class="sp-catch-src" data-for="m : clan" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div>'
+        .. '<div data-model="party-finder"><div data-for="a : party_adverts"><span class="sp-catch-src" data-for="m : a.members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div></div>'
+    local function each(list, fn)
+        if not list then return end
+        local i = list[0] and 0 or 1
+        while list[i] do fn(list[i]); i = i + 1 end
+    end
+    local ticks, added = 0, false
+    local function catch()
+        ticks = ticks + 1
+        if not added then
+            if ticks < 2 then return end          -- wait about 15 seconds first
+            local slot = document:GetElementById('sp-catch-slot')
+            if not slot then return end
+            added = true
+            pcall(function() slot.inner_rml = SOURCES end)
+            return
+        end
+        if SP_ADDON_ON and not SP_ADDON_ON('friend_levels') then return end
+        local seen, any = {}, false
+        each(document:QuerySelectorAll('.sp-catch-src'), function(e)
+            local name, lvl = e:GetAttribute('sp-name'), tonumber(e:GetAttribute('sp-level'))
+            if name and name ~= '' and lvl and lvl > 1 then seen[name] = lvl; any = true end
+        end)
+        if not any then return end
+        -- merge with the file (the Group Manager writes it too)
+        local cache, changed = {}, false
+        pcall(function()
+            local f = io.open(FILE, 'r')
+            if not f then return end
+            for line in f:lines() do
+                local n, l = line:match('^(.-)=(%d+)%s*$')
+                if n and n ~= '' then cache[n] = tonumber(l) end
+            end
+            f:close()
+        end)
+        for n, l in pairs(seen) do
+            if cache[n] ~= l then cache[n] = l; changed = true end
+        end
+        if changed then
+            pcall(function()
+                local f = io.open(FILE, 'w')
+                if not f then return end
+                for n, l in pairs(cache) do f:write(n, '=', l, '\n') end
+                f:close()
+            end)
+        end
+    end
+    local timer = document:GetElementById('sp-catch-timer')
+    local flip = false
+    if timer then
+        timer:AddEventListener('animationend', function()
+            pcall(catch)
+            flip = not flip
+            timer.style.animation = (added and '10s ' or '8s ') .. (flip and 'sp-catch-tick-b' or 'sp-catch-tick-a')
+        end)
+    end
+end)
+    </script>
     </head>
 
     <body id="game-friend-list" template="window-resizeable">
@@ -224,5 +303,8 @@ end)
             </panel>
         </tabset>
         <div id="sp-switch-timer"></div>
+        <!-- Level catcher: hidden lists (filled in by the script) and its timer -->
+        <div id="sp-catch-slot"></div>
+        <div id="sp-catch-timer"></div>
     </body>
 </rml>
