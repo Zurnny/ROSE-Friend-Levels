@@ -148,17 +148,15 @@ pcall(function()
     local doc = document
     local function apply()
         for _, m in ipairs(MINE) do
-            if m[2] ~= '' then pcall(function() doc:SetClass(m[2], not SP_ADDON_ON(m[1])) end) end
+            if m[2] ~= '' then pcall(function() (doc:GetElementById('game-friend-list') or doc):SetClass(m[2], not SP_ADDON_ON(m[1])) end) end
         end
     end
     apply()
     doc:AddEventListener('show', function() pcall(apply) end)
+    doc:AddEventListener('mouseover', function() pcall(apply) end)
     -- repeating 2 second check: two identical animations swapped each time one ends
     pcall(function()
-        local t = doc:CreateElement('div')
-        t:SetAttribute('id', 'sp-switch-timer')
-        doc:AppendChild(t)
-        local timer = doc:GetElementById('sp-switch-timer')
+        local timer = doc:GetElementById('sp-switch-timer')   -- the empty div at the end of the body
         local flip = false
         timer:AddEventListener('animationend', function()
             pcall(apply)
@@ -225,5 +223,6 @@ end)
                 </div>
             </panel>
         </tabset>
+        <div id="sp-switch-timer"></div>
     </body>
 </rml>
