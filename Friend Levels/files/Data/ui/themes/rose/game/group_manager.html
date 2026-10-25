@@ -28,6 +28,9 @@
         .sp-orig-level { display: none; }
         #group-manager.sp-levels-off .sp-friend-level { display: none; }
         #group-manager.sp-levels-off .sp-orig-level { display: inline; }
+@keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
+@keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
+#sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
     </style>
     <script>
 -- Friend levels (add-on). The game sends level 1 for friends whose
@@ -95,36 +98,77 @@ pcall(function()
 end)
     </script>
     <script>
--- Add-on switch: turned on and off in Options > UI > Add-ons (Options Extras),
+-- Add-on switch: turned on and off in Options > UI > Add-ons (Options Extras).
 -- SP_ADDON_SWITCH friend_levels
--- saved in sp_addons.txt. Everything is on until it is switched off there.
+-- When this window loads it lists itself in sp_addons_list.txt, which is how
+-- Options knows to show its switch. The switch itself is saved in
+-- sp_addons.txt; this window reads it fresh every 2 seconds, so a change in
+-- Options shows here within about 2 seconds. Everything is on by default.
 pcall(function()
-    if not SP_ADDON_ON then
-        SP_ADDON_ON = function(key)
-            if type(SP_ADDON_FLAGS) ~= 'table' then
-                SP_ADDON_FLAGS = {}
-                pcall(function()
-                    local f = io.open('sp_addons.txt', 'r')
-                    if not f then return end
-                    for line in f:lines() do
-                        local k, v = line:match('^%s*([%w_]+)%s*=%s*(%d)')
-                        if k then SP_ADDON_FLAGS[k] = (v == '1') end
-                    end
-                    f:close()
-                end)
+    local LIST, FLAGS = 'sp_addons_list.txt', 'sp_addons.txt'
+    -- key, class put on this window while it is switched off ('' = none), switch text, add-on
+    local MINE = {{'friend_levels', 'sp-levels-off', 'Remembered friend levels', 'Friend Levels'}}
+    SP_ADDON_ON = function(key)
+        local on = true
+        pcall(function()
+            local f = io.open(FLAGS, 'r')
+            if not f then return end
+            for line in f:lines() do
+                local k, v = line:match('^%s*([%w_]+)%s*=%s*(%d)')
+                if k == key then on = (v == '1') end
             end
-            return SP_ADDON_FLAGS[key] ~= false
+            f:close()
+        end)
+        return on
+    end
+    -- list myself (key|switch text|add-on), keeping everyone else's lines
+    pcall(function()
+        local lines, have, changed = {}, {}, false
+        local f = io.open(LIST, 'r')
+        if f then
+            for line in f:lines() do
+                local k = line:match('^([%w_]+)|')
+                if k then lines[#lines + 1] = line; have[k] = line end
+            end
+            f:close()
+        end
+        for _, m in ipairs(MINE) do
+            local want = m[1] .. '|' .. m[3] .. '|' .. m[4]
+            if have[m[1]] ~= want then
+                changed = true
+                local put = false
+                for i, line in ipairs(lines) do
+                    if line:match('^([%w_]+)|') == m[1] then lines[i] = want; put = true end
+                end
+                if not put then lines[#lines + 1] = want end
+            end
+        end
+        if changed then
+            local w = io.open(LIST, 'w')
+            if w then w:write(table.concat(lines, '\n'), '\n'); w:close() end
+        end
+    end)
+    local doc = document
+    local function apply()
+        for _, m in ipairs(MINE) do
+            if m[2] ~= '' then pcall(function() doc:SetClass(m[2], not SP_ADDON_ON(m[1])) end) end
         end
     end
-    SP_ADDON_APPLY = SP_ADDON_APPLY or {}
-    local doc = document
-    for _, pair in ipairs({{'friend_levels', 'sp-levels-off'}}) do
-        local key, cls = pair[1], pair[2]
-        local function apply() pcall(function() doc:SetClass(cls, not SP_ADDON_ON(key)) end) end
-        apply()
-        SP_ADDON_APPLY[key] = SP_ADDON_APPLY[key] or {}
-        table.insert(SP_ADDON_APPLY[key], apply)
-    end
+    apply()
+    doc:AddEventListener('show', function() pcall(apply) end)
+    -- repeating 2 second check: two identical animations swapped each time one ends
+    pcall(function()
+        local t = doc:CreateElement('div')
+        t:SetAttribute('id', 'sp-switch-timer')
+        doc:AppendChild(t)
+        local timer = doc:GetElementById('sp-switch-timer')
+        local flip = false
+        timer:AddEventListener('animationend', function()
+            pcall(apply)
+            flip = not flip
+            timer.style.animation = '2s ' .. (flip and 'sp-switch-tick-b' or 'sp-switch-tick-a')
+        end)
+    end)
 end)
     </script>
 </head>
