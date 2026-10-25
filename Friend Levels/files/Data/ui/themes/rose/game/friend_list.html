@@ -173,8 +173,8 @@ end)
     <script>
 -- Level catcher (Friend Levels add-on). From the moment you are in game it
 -- quietly reads levels from every list the game already has: your clan's
--- member list, the Game Arena (group, friends, clan) and the Party Finder's
--- adverts. Every name with a real level goes into sp_level_cache.txt, so
+-- member list and the Game Arena (group, friends, clan). (Party Finder
+-- adverts are not read: their nested lists made the game log index errors.) Every name with a real level goes into sp_level_cache.txt, so
 -- friends get their levels without opening the Group Manager first.
 -- The lists are added about 15 seconds after this window loads (adding them
 -- straight away, before you are in game, makes the game log "Could not
@@ -187,7 +187,6 @@ pcall(function()
         .. '<div data-model="game-arena"><span class="sp-catch-src" data-for="m : members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span>'
         .. '<span class="sp-catch-src" data-for="m : friends" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span>'
         .. '<span class="sp-catch-src" data-for="m : clan" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div>'
-        .. '<div data-model="party-finder"><div data-for="a : party_adverts"><span class="sp-catch-src" data-for="m : a.members" data-attr-sp-name="m.name" data-attr-sp-level="m.level"></span></div></div>'
     local function each(list, fn)
         if not list then return end
         local i = list[0] and 0 or 1
