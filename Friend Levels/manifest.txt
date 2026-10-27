@@ -1,5 +1,7 @@
 ; Update list for Friend Levels. Upload this next to mod.ini and the files folder.
-version=1.6
-c8202933cd975fa2c7070e309b4fece149b9acec|mod.ini
-d2ddeaac9bfbae58addbccb49469d44d5ade4e8b|files/Data/ui/themes/rose/game/friend_list.html
-5518c1439bf1e9b22fa846681cadc2ba386102e5|files/Data/ui/themes/rose/game/group_manager.html
+version=1.7
+4c091c8e31f6d11f6bb65d13eac3489a821169b3|mod.ini
+0636fd794a009c9d91ff537728ea6c0fe22919f3|files/Data/ui/sp_addons/friend_levels.txt
+9697858110b830bc39da81fade3f97a578866a57|files/Data/ui/themes/rose/game/friend_list.html
+babeb06400a6cccff4ad03d05673e3cecf6447d8|files/Data/ui/themes/rose/game/group_manager.html
+6fedb34cabee5e5dda0c2652adf7056e8d331d6d|files/Data/ui/themes/rose/game/options_bgfx.html
