@@ -5,54 +5,60 @@
         <link type="text/template" href="../templates/window-resizeable.html" />
 
         <style>
-            #game-friend-list
-            {
-                width: 300dp;
-                height: 380dp;
-                min-width: 280dp;
-                min-height: 200dp;
-            }
+            /* ==== Parts of the page for one look only ==== */
+            .sp-only-steampunk { display: none; }
+            .sp-theme-steampunk .sp-only-default { display: none; }
 
-            listbox {
-                padding-right: 15dp;
-            }
-
-            listbox-item {
-                padding: 4dp;
-            }
-
-            button.default {
-                min-width: 110dp;
-            }
-
-            tabset {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-            }
-
-            tab.default {
-                min-width: 0dp;
-                flex: 1;
-                box-sizing: border-box;
-            }
-
-            tabset > panels {
-                flex: 1;
-            }
-
-            /* Remembered level next to each friend (script below) */
-            .sp-friend-level { width: 52dp; flex-shrink: 0; text-align: right; margin-right: 10dp; color: rgb(180, 180, 180); font-size: 13dp; }
+            /* ==== Both looks ==== */
+            #game-friend-list { width: 300dp; height: 380dp; min-width: 280dp; min-height: 200dp; }
+            listbox { padding-right: 15dp; }
+            listbox-item { padding: 4dp; }
+            button.default { min-width: 110dp; }
+            tabset { width: 100%; height: 100%; display: flex; flex-direction: column; }
+            tab.default { min-width: 0dp; flex: 1; box-sizing: border-box; }
+            tabset > panels { flex: 1; }
             #game-friend-list.sp-levels-off .sp-friend-level { display: none; }
-@keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
-@keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
-#sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
+            #sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
             #sp-catch-slot { display: none; }
+            #sp-catch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 8s sp-catch-tick-a; }
+
+            /* ==== Default UI look only ==== */
+            .sp-theme-default .sp-friend-level { width: 52dp; flex-shrink: 0; text-align: right; margin-right: 10dp; color: rgb(180, 180, 180); font-size: 13dp; }
+
+            /* ==== Steampunk look only ==== */
+            .sp-theme-steampunk .sp-friend-level { width: 52dp; flex-shrink: 0; text-align: right; margin-right: 10dp; color: rgb(201, 180, 138); font-size: 13dp; }
+            .sp-theme-steampunk .sp-button-row { display: flex; flex-direction: row; gap: 4dp; margin-top: 4dp; }
+            .sp-theme-steampunk .sp-button-row > button.default { flex: 1; min-width: 0dp; white-space: nowrap; font-size: 13dp; padding-left: 2dp; padding-right: 2dp; }
+
+            @keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
             @keyframes sp-catch-tick-a { from { opacity: 0; } to { opacity: 0; } }
             @keyframes sp-catch-tick-b { from { opacity: 0; } to { opacity: 0; } }
-            #sp-catch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 8s sp-catch-tick-a; }
         </style>
+        <script>
+-- Theme check (add-on windows work with the default UI and with the Steampunk
+-- UI theme). Steampunk is installed when styles/steampunk.css exists; then this
+-- window gets the class sp-theme-steampunk and uses the Steampunk look,
+-- otherwise sp-theme-default and the game's own look. SP_THEME says which.
+pcall(function()
+    local sp = false
+    pcall(function()
+        local f = io.open('Data/ui/themes/rose/styles/steampunk.css', 'r')
+        if f then f:close(); sp = true end
+    end)
+    SP_THEME = sp and 'steampunk' or 'default'
+    local body = document:GetElementById('game-friend-list')
+    if body then
+        body:SetClass('sp-theme-default', not sp)
+        body:SetClass('sp-theme-steampunk', sp)
+    end
+    -- parts written for the other look are taken out, so only one of each is left
+    local gone, list = {}, document:QuerySelectorAll(sp and '.sp-only-default' or '.sp-only-steampunk')
+    local i = list[0] and 0 or 1
+    while list[i] do gone[#gone + 1] = list[i]; i = i + 1 end
+    for _, e in ipairs(gone) do pcall(function() e.parent_node:RemoveChild(e) end) end
+end)
+        </script>
         <script>
 -- Friend levels (add-on). Shows each friend's level as remembered by
 -- the level catcher below and the Group Manager (sp_level_cache.txt).
@@ -114,6 +120,8 @@ pcall(function()
     local MINE = {{'friend_levels', 'sp-levels-off'}}
     local installed = {}
     SP_ADDON_INSTALLED = function(key)
+        -- the Steampunk UI theme has every add-on built in
+        if SP_THEME == 'steampunk' then return true end
         if installed[key] == nil then
             installed[key] = true      -- if the game won't let the UI read files, assume installed
             pcall(function()
@@ -265,6 +273,7 @@ end)
                             </listbox>
                         </div>
                     </div>
+                    <div class="sp-only-default">
                     <div style="display: flex; flex-direction: row;">
                         <div style="width: 110dp">
                             <button class="default" onclick="add_friend">Add Friend</button>
@@ -274,6 +283,12 @@ end)
                         <div style="width: 110dp">
                             <button class="default" onclick="mail_or_message_friend">Message</button>
                         </div>
+                    </div>
+                    </div>
+                    <div class="sp-button-row sp-only-steampunk">
+                        <button class="default" onclick="add_friend">Add Friend</button>
+                        <button class="default" onclick="mail_or_message_friend">Message</button>
+                        <button class="default" onclick="delete_friend">Delete Friend</button>
                     </div>
             </div>
             </panel>
@@ -293,7 +308,13 @@ end)
                             </listbox>
                         </div>
                     </div>
+                    <div class="sp-only-default">
                     <div style="display: flex; flex-direction: column;">
+                        <button class="default" onclick="add_ignore">Add Ignore</button>
+                        <button class="default" onclick="delete_ignore">Delete Ignore</button>
+                    </div>
+                    </div>
+                    <div class="sp-button-row sp-only-steampunk">
                         <button class="default" onclick="add_ignore">Add Ignore</button>
                         <button class="default" onclick="delete_ignore">Delete Ignore</button>
                     </div>

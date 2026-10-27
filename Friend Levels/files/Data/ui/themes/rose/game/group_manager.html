@@ -4,34 +4,70 @@
     <link type="text/template" href="../templates/window-fixed-size.html" />
     <link type="text/rcss" href="../styles/components.css" />
     <style>
-        body { width: 740dp; max-width: 94vw; }
-        .group-columns { display: flex; gap: 10dp; height: 480dp; max-height: 70vh; min-height: 280dp; }
-        .group-roster { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .group-directory { width: 270dp; flex: 0 0 37%; min-width: 215dp; display: flex; flex-direction: column; }
-        .group-heading { display: flex; justify-content: space-between; padding: 8dp; flex-shrink: 0; }
-        .group-heading .ui-section-title { margin: 0; }
-        .group-scroll { flex: 1; min-height: 0; overflow-y: auto; }
-        .group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .group-job { width: 78dp; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .group-level { width: 32dp; text-align: right; flex-shrink: 0; }
-        .group-leader { width: 12dp; color: yellow; flex-shrink: 0; }
-        .group-row { cursor: hand; }
-        .group-empty { padding: 24dp 8dp; }
-        .group-actions { display: flex; flex-wrap: wrap; gap: 6dp; padding: 8dp; flex-shrink: 0; }
-        .group-actions button { flex: 1 0 46%; min-width: 150dp; font-size: 13dp; padding: 4dp 8dp; white-space: nowrap; }
-        .group-invite-entry { display: flex; gap: 6dp; padding: 0 8dp 8dp; flex-shrink: 0; }
-        .group-invite-entry input { flex: 1; width: 100dp; min-width: 0; }
-        .group-invite-entry button, .group-directory-row button { min-width: 58dp; font-size: 12dp; }
-        .group-directory-row { display: flex; align-items: center; gap: 6dp; padding: 6dp 8dp; font-size: 13dp; }
-        .group-directory-label { padding: 8dp; margin-bottom: 0; }
-        .group-help { padding: 8dp; }
-        .sp-orig-level { display: none; }
-        #group-manager.sp-levels-off .sp-friend-level { display: none; }
-        #group-manager.sp-levels-off .sp-orig-level { display: inline; }
-@keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
-@keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
-#sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
-    </style>
+            /* ==== Parts of the page for one look only ==== */
+            .sp-only-steampunk { display: none; }
+            .sp-theme-steampunk .sp-only-default { display: none; }
+
+            /* ==== Both looks ==== */
+            body { width: 740dp; max-width: 94vw; }
+            .group-columns { display: flex; gap: 10dp; height: 480dp; max-height: 70vh; min-height: 280dp; }
+            .group-roster { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+            .group-directory { width: 270dp; flex: 0 0 37%; min-width: 215dp; display: flex; flex-direction: column; }
+            .group-heading { display: flex; justify-content: space-between; padding: 8dp; flex-shrink: 0; }
+            .group-heading .ui-section-title { margin: 0; }
+            .group-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+            .group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .group-job { width: 78dp; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .group-level { width: 32dp; text-align: right; flex-shrink: 0; }
+            .group-row { cursor: hand; }
+            .group-empty { padding: 24dp 8dp; }
+            .group-actions { display: flex; flex-wrap: wrap; gap: 6dp; padding: 8dp; flex-shrink: 0; }
+            .group-actions button { flex: 1 0 46%; min-width: 150dp; font-size: 13dp; padding: 4dp 8dp; white-space: nowrap; }
+            .group-invite-entry { display: flex; gap: 6dp; padding: 0 8dp 8dp; flex-shrink: 0; }
+            .group-invite-entry input { flex: 1; width: 100dp; min-width: 0; }
+            .group-invite-entry button { min-width: 58dp; font-size: 12dp; }
+            .group-directory-row button { min-width: 58dp; font-size: 12dp; }
+            .group-directory-row { display: flex; align-items: center; gap: 6dp; padding: 6dp 8dp; font-size: 13dp; }
+            .group-directory-label { padding: 8dp; margin-bottom: 0; }
+            .group-help { padding: 8dp; }
+            .sp-orig-level { display: none; }
+            #group-manager.sp-levels-off .sp-friend-level { display: none; }
+            #group-manager.sp-levels-off .sp-orig-level { display: inline; }
+            #sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
+
+            /* ==== Default UI look only ==== */
+            .sp-theme-default .group-leader { width: 12dp; color: yellow; flex-shrink: 0; }
+
+            /* ==== Steampunk look only ==== */
+            .sp-theme-steampunk .group-leader { width: 12dp; color: rgb(243, 211, 138); flex-shrink: 0; }
+
+            @keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
+        </style>
+        <script>
+-- Theme check (add-on windows work with the default UI and with the Steampunk
+-- UI theme). Steampunk is installed when styles/steampunk.css exists; then this
+-- window gets the class sp-theme-steampunk and uses the Steampunk look,
+-- otherwise sp-theme-default and the game's own look. SP_THEME says which.
+pcall(function()
+    local sp = false
+    pcall(function()
+        local f = io.open('Data/ui/themes/rose/styles/steampunk.css', 'r')
+        if f then f:close(); sp = true end
+    end)
+    SP_THEME = sp and 'steampunk' or 'default'
+    local body = document:GetElementById('group-manager')
+    if body then
+        body:SetClass('sp-theme-default', not sp)
+        body:SetClass('sp-theme-steampunk', sp)
+    end
+    -- parts written for the other look are taken out, so only one of each is left
+    local gone, list = {}, document:QuerySelectorAll(sp and '.sp-only-default' or '.sp-only-steampunk')
+    local i = list[0] and 0 or 1
+    while list[i] do gone[#gone + 1] = list[i]; i = i + 1 end
+    for _, e in ipairs(gone) do pcall(function() e.parent_node:RemoveChild(e) end) end
+end)
+        </script>
     <script>
 -- Friend levels (add-on). The game sends level 1 for friends whose
 -- level it does not know. Real levels seen in your group, in the online clan
@@ -136,6 +172,8 @@ pcall(function()
     local MINE = {{'friend_levels', 'sp-levels-off'}}
     local installed = {}
     SP_ADDON_INSTALLED = function(key)
+        -- the Steampunk UI theme has every add-on built in
+        if SP_THEME == 'steampunk' then return true end
         if installed[key] == nil then
             installed[key] = true      -- if the game won't let the UI read files, assume installed
             pcall(function()
