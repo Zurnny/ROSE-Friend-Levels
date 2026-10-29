@@ -2,7 +2,7 @@
 
 Real levels in the friend list and Group Manager.
 
-Shows real levels for friends in the friend list and Group Manager. From start-up it collects levels from your clan list, your group and the Game Arena (the game sends level 1 for friends when it does not know). Switch: Options > UI > Add-ons.
+Shows real levels for friends in the friend list and Group Manager. It collects levels from your clan list, your group, the Game Arena and every Party Finder advert you look at, and remembers them (the game sends level 1 for friends when it does not know). Switch: Options > UI > Add-ons.
 
 An add-on for [ROSE Mod Launcher](https://github.com/Zurnny/Rose_Mod_Launcher), for the game's default UI and the Steampunk UI theme. Without the launcher, copy the `Data` folder from `files` into your ROSE Online folder.
 
@@ -29,9 +29,11 @@ The switches are saved in `sp_addons.txt` in the ROSE Online folder. The Ice UI
 theme uses the same file; both keep each other's settings.
 
 ## Files it changes
+- `Data/ui/themes/rose/game/clan.html`
 - `Data/ui/themes/rose/game/friend_list.html`
 - `Data/ui/themes/rose/game/group_manager.html`
 - `Data/ui/themes/rose/game/options_bgfx.html`
+- `Data/ui/themes/rose/game/party_finder.html`
 - `Data/ui/sp_addons/friend_levels.txt` (marker)
 
 Turning it off in the launcher puts the game's own files back.

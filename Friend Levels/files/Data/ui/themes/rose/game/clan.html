@@ -1,0 +1,393 @@
+<rml>
+    <head>
+        <title>Clan</title>
+
+        <link type="text/template" href="../templates/window-resizeable.html" />
+
+        <link type="text/rcss" href="../styles/spritesheet_clanback.css" />
+        <link type="text/rcss" href="../styles/spritesheet_clancenter.css" />
+        <link type="text/rcss" href="../styles/clan_mark.css" />
+
+        <style>
+            /* ==== Parts of the page for one look only (the other look's part stays hidden) ==== */
+            #game-clan.sp-theme-default .sp-only-steampunk { display: none; }
+            #game-clan.sp-theme-steampunk .sp-only-default { display: none; }
+
+            /* ==== Both looks ==== */
+            #game-clan { width: 800dp; min-width: 800dp; height: 480dp; min-height: 480dp; }
+            .header { pointer-events: auto; }
+            .name { word-break: break-all; }
+            tabset { width: 100%; height: 100%; display: flex; flex-direction: column; }
+            panels { flex: 1; }
+            td { text-align: left; vertical-align: middle; }
+            .clan-mark-container { display: inline-block; width: 40dp; height: 40dp; padding: 0dp; }
+            clan-mark { display: inline-block; width: 20dp; height: 20dp; vertical-align: top; line-height: 40dp; position: relative; top: 10dp; left: 10dp; }
+            .clan-info > tr { padding: 2dp; }
+            listbox-item:not([disabled])[selected] { color: white; }
+            listbox-item:not([disabled]):hover { color: white; }
+            tab.default { padding-left: 25dp; padding-right: 25dp; }
+            listbox { display: table; }
+            .clan-member { }
+            .offline { color: #aaa; }
+            .clan-member-header { padding-right: 18dp; height: 1.5em; }
+            .clan-member-header td:hover { background: rgba(100, 100, 100, 80); cursor: hand; }
+            .clan-member-icon { width: 20dp; height: 16dp; }
+            .clan-member-name { min-width: 150dp; }
+            .clan-member-rank { width: 110dp; }
+            .clan-member-level { width: 40dp; }
+            .clan-member-job { width: 80dp; }
+            .clan-member-contribution { width: 150dp; }
+            .clan-member-last-seen { width: 180dp; }
+            .content-box { margin: 2dp; padding: 4dp; padding-left: 6dp; }
+            #sp-lvc-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 5s sp-lvc-tick-a; }
+            #sp-switch-timer { position: absolute; width: 1dp; height: 1dp; opacity: 0; pointer-events: none; animation: 2s sp-switch-tick-a; }
+
+            /* ==== Default UI look only ==== */
+            .sp-theme-default listbox-item { padding: 0dp; }
+            .sp-theme-default listbox-item:not([disabled])[selected] .clan-member-name { color: yellow; }
+            .sp-theme-default listbox-item:not([disabled]):hover .clan-member-name { color: yellow; }
+            .sp-theme-default listbox-item { display: table-row; cursor: hand; }
+
+            /* ==== Steampunk look only ==== */
+            .sp-theme-steampunk listbox-item { padding: 0dp; }
+            .sp-theme-steampunk listbox-item:not([disabled])[selected] .clan-member-name { color: rgb(243, 211, 138); }
+            .sp-theme-steampunk listbox-item:not([disabled]):hover .clan-member-name { color: rgb(243, 211, 138); }
+            .sp-theme-steampunk listbox-item { display: table-row; cursor: hand; }
+
+            @keyframes sp-lvc-tick-a { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-lvc-tick-b { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-switch-tick-a { from { opacity: 0; } to { opacity: 0; } }
+            @keyframes sp-switch-tick-b { from { opacity: 0; } to { opacity: 0; } }
+        </style>
+        <script>
+-- Theme check (add-on windows work with the default UI and with the Steampunk
+-- UI theme). Steampunk is installed when styles/steampunk.css exists; then this
+-- window gets the class sp-theme-steampunk and uses the Steampunk look,
+-- otherwise sp-theme-default and the game's own look. SP_THEME says which.
+pcall(function()
+    local sp = false
+    pcall(function()
+        local f = io.open('Data/ui/themes/rose/styles/steampunk.css', 'r')
+        if f then f:close(); sp = true end
+    end)
+    SP_THEME = sp and 'steampunk' or 'default'
+    local body = document:GetElementById('game-clan')
+    if body then
+        body:SetClass('sp-theme-default', not sp)
+        body:SetClass('sp-theme-steampunk', sp)
+    end
+    -- (parts written for the other look stay in the window, hidden)
+end)
+        </script>
+        <script>
+-- Level and class catcher (Friend Levels and Class Icons add-ons). This window
+-- already shows names with their levels and classes (your clan members). Every 5 seconds while
+-- it is loaded, and when it opens, each real level goes into sp_level_cache.txt
+-- (for the friend list and the Group Manager) and each class into
+-- sp_job_cache.txt (for the class icons in party and group). It only reads what
+-- the window draws.
+pcall(function()
+    local document = document
+    local FILE = 'sp_level_cache.txt'
+    local function each(list, fn)
+        if not list then return end
+        local i = list[0] and 0 or 1
+        while list[i] do fn(list[i]); i = i + 1 end
+    end
+    -- class numbers -> names, as the class icons use them
+    local IDS = { [0] = 'visitor', [111] = 'soldier', [121] = 'knight', [122] = 'champion',
+        [211] = 'muse', [221] = 'mage', [222] = 'cleric', [311] = 'hawker', [321] = 'raider',
+        [322] = 'scout', [411] = 'dealer', [421] = 'bourgeois', [422] = 'artisan' }
+    local FIRST = { [1] = 'soldier', [2] = 'muse', [3] = 'hawker', [4] = 'dealer' }
+    local VALID = {}
+    for _, v in pairs(IDS) do VALID[v] = true end
+    local function job_name(value)
+        local n = tonumber(value)
+        if n then return IDS[n] or FIRST[math.floor(n / 100)] or (n < 100 and 'visitor') or nil end
+        local s = tostring(value or ''):lower():match('^%s*(.-)%s*$')
+        return VALID[s] and s or nil
+    end
+    -- merge name=value lines into a file (only written when something changed)
+    local function merge(file, seen, pattern)
+        local cache, changed = {}, false
+        pcall(function()
+            local f = io.open(file, 'r')
+            if not f then return end
+            for line in f:lines() do
+                local n, v = line:match(pattern)
+                if n and n ~= '' then cache[n] = v end
+            end
+            f:close()
+        end)
+        for n, v in pairs(seen) do
+            if cache[n] ~= v then cache[n] = v; changed = true end
+        end
+        if changed then
+            pcall(function()
+                local f = io.open(file, 'w')
+                if not f then return end
+                for n, v in pairs(cache) do f:write(n, '=', v, '\n') end
+                f:close()
+            end)
+        end
+    end
+    local function catch()
+        local want_lv = not SP_ADDON_ON or SP_ADDON_ON('friend_levels')
+        local want_job = not SP_ADDON_ON or SP_ADDON_ON('class_icons')
+        if not want_lv and not want_job then return end
+        local levels, jobs, any_lv, any_job = {}, {}, false, false
+        each(document:QuerySelectorAll('.sp-lv-src'), function(e)
+            local name = e:GetAttribute('sp-name')
+            name = name and tostring(name) or ''
+            if name == '' then return end
+            local lvl = tonumber(e:GetAttribute('sp-level'))
+            if want_lv and lvl and lvl > 1 then levels[name] = string.format('%d', math.floor(lvl)); any_lv = true end
+            local job = job_name(e:GetAttribute('sp-job'))
+            if want_job and job then jobs[name] = job; any_job = true end
+        end)
+        if any_lv then merge(FILE, levels, '^(.-)=(%d+)%s*$') end
+        if any_job then merge('sp_job_cache.txt', jobs, '^(.-)=(%a+)%s*$') end
+    end
+    document:AddEventListener('show', function() pcall(catch) end)
+    local timer = document:GetElementById('sp-lvc-timer')
+    local flip = false
+    if timer then
+        timer:AddEventListener('animationend', function()
+            pcall(catch)
+            flip = not flip
+            timer.style.animation = '5s ' .. (flip and 'sp-lvc-tick-b' or 'sp-lvc-tick-a')
+        end)
+    end
+end)
+        </script>
+    <script>
+-- Add-on switches (the same script in every add-on window).
+-- SP_ADDON_SWITCH friend_levels
+-- SP_ADDON_SWITCH class_icons
+-- An add-on counts as installed while its marker file
+-- Data/ui/sp_addons/<key>.txt exists. The launcher copies the marker in with
+-- the add-on and takes it out again with it, so a window that several add-ons
+-- share only runs the parts of the add-ons that are installed.
+-- The on/off switches are in Options > UI > Add-ons and are saved in
+-- sp_addons.txt (the Ice UI uses the same file; nobody removes anyone else's
+-- lines). This window reads it every 2 seconds. Everything is on by default.
+pcall(function()
+    local BODY = 'game-clan'
+    -- key, class put on this window while that add-on is off or not installed ('' = none)
+    local MINE = {{'friend_levels', ''}, {'class_icons', ''}}
+    local installed = {}
+    SP_ADDON_INSTALLED = function(key)
+        -- the Steampunk UI theme has every add-on built in
+        if SP_THEME == 'steampunk' then return true end
+        if installed[key] == nil then
+            installed[key] = true      -- if the game won't let the UI read files, assume installed
+            pcall(function()
+                local f = io.open('Data/ui/sp_addons/' .. key .. '.txt', 'r')
+                if f then f:close() else installed[key] = false end
+            end)
+        end
+        return installed[key]
+    end
+    local flags = {}
+    local function read_flags()
+        flags = {}
+        pcall(function()
+            local f = io.open('sp_addons.txt', 'r')
+            if not f then return end
+            for line in f:lines() do
+                local k, v = line:match('^%s*([%w_]+)%s*=%s*(%d)')
+                if k then flags[k] = v end
+            end
+            f:close()
+        end)
+    end
+    -- SP_ADDON_ON(key): installed and not switched off. Reads the switches fresh
+    -- unless called with fresh == false.
+    SP_ADDON_ON = function(key, fresh)
+        if not SP_ADDON_INSTALLED(key) then return false end
+        if fresh ~= false then read_flags() end
+        return flags[key] ~= '0'
+    end
+    local doc = document
+    local function apply()
+        read_flags()
+        for _, m in ipairs(MINE) do
+            local on = SP_ADDON_ON(m[1], false)
+            if m[2] ~= '' then pcall(function() (doc:GetElementById(BODY) or doc):SetClass(m[2], not on) end) end
+            -- a script in this window can register SP_ADDON_HOOK['<key>@<body id>'] = function(on) ... end
+            local hook = SP_ADDON_HOOK and SP_ADDON_HOOK[m[1] .. '@' .. BODY]
+            if hook then pcall(hook, on) end
+        end
+    end
+    apply()
+    doc:AddEventListener('show', function() pcall(apply) end)
+    doc:AddEventListener('mouseover', function() pcall(apply) end)
+    -- repeating 2 second check: two identical animations swapped each time one ends
+    pcall(function()
+        local timer = doc:GetElementById('sp-switch-timer')   -- the empty div at the end of the body
+        local flip = false
+        timer:AddEventListener('animationend', function()
+            pcall(apply)
+            flip = not flip
+            timer.style.animation = '2s ' .. (flip and 'sp-switch-tick-b' or 'sp-switch-tick-a')
+        end)
+    end)
+end)
+    </script>
+    </head>
+
+    <body id="game-clan" template="window-resizeable">
+        <div data-model="clan" style="width: 100%; height: 100%">
+            <tabset>
+                <tab class="default"><str string-id="867" /></tab>
+                <panel>
+                    <div style="display: flex; width:100%; height: 100%; flex-direction: column;">
+                        <div style="flex: 1">
+                            <div class="content-box" style="padding-bottom: 0dp">
+                                <table class="clan-info">
+                                    <tr>
+                                        <td style="width: 150dp"><str string-id="861"/></td>
+                                        <td><label class="text">{{name}}</label></td>
+                                    </tr>
+                                    <tr>
+                                        <td><str string-id="46"/></td>
+                                        <td><label class="text">{{format_number(points)}}</label></td>
+                                    </tr>
+                                    <tr>
+                                        <td><str string-id="47"/></td>
+                                        <td><label class="text">{{slogan}}</label></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Icon</td>
+                                        <td style="vertical-align: middle; line-height: 42dp;">
+                                            <img sprite="CLAN_ICON_BG" class="clan-mark-container">
+                                                <clan-mark data-if="!is_editing_mark" data-attr-clan-id="id" data-attr-back="mark_back" data-attr-center="mark_center" data-attr-crc="mark_file_crc" />
+                                                <clan-mark data-if="is_editing_mark" id="clan-mark-preview" />
+                                            </img>
+                                            <button class="default" style="min-width: 100dp;"
+                                                data-if="can_update_mark(avatar_rank) && !is_editing_mark"
+                                                data-event-click="is_editing_mark = true"
+                                                onclick="edit_mark">Edit</button>
+                                            <button class="default"
+                                                data-if="is_editing_mark"
+                                                data-event-click="is_editing_mark = false"
+                                                onclick="save_mark"><str string-id="858" /></button>
+                                            <button class="default"
+                                                data-if="is_editing_mark"
+                                                data-event-click="is_editing_mark = false"><str string-id="859" /></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="height: 150dp">
+                                            <div style="display: flex; flex-direction: column; height: 100%">
+                                                <div>Message of the Day</div>
+                                                <div style="flex: 1">&nbsp;</div>
+                                                <button class="default"
+                                                    data-if="can_update_motd(avatar_rank) && !is_editing_motd"
+                                                    data-event-click="is_editing_motd = true; motd_view = motd"
+                                                    onclick="edit_motd">Edit</button>
+                                                <button class="default"
+                                                    data-if="is_editing_motd"
+                                                    data-event-click="is_editing_motd = false"
+                                                    onclick="save_motd"><str string-id="858" /></button>
+                                                <button class="default"
+                                                    data-if="is_editing_motd"
+                                                    data-event-click="is_editing_motd = false; motd_view = motd"><str string-id="859" /></button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <textarea style="width: 100%; height: 150dp" id="motd" maxlength="367" data-attrif-readonly="!is_editing_motd" data-value="motd_view"></textarea>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="content-box" style="margin-top: 4dp;">
+                                <b>{{avatar_name}}</b>
+
+                                <div style="display: flex; flex-direction: row; align-items: center; gap: 10dp">
+                                    <img data-attr-sprite="'clan-rank-' + avatar_rank" style="width: 40dp; height: 40dp" />
+                                    <table class="clan-info" style="flex: 1">
+                                        <tr>
+                                            <td style="width: 150dp"><str string-id="50"/></td>
+                                            <td><label class="text"><str data-attr-clan-rank="avatar_rank" /></label></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="width: 150dp"><str string-id="1283"/></td>
+                                            <td><label class="text">{{format_number(avatar_contribution)}}</label></td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <div style="width: 100%; text-align: right">
+                                    <button class="default" data-if="can_leave(avatar_rank)" onclick="leave">Leave</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </panel>
+
+                <tab class="default"><str string-id="868" /></tab>
+                <panel>
+                    <div style="width: 100%;  height: 100%; display: flex; flex-direction: column;">
+                        <div class="content-box" style="padding-top: 0dp; padding-bottom: 0dp; margin-bottom: 0dp;">
+                            <table class="clan-member-header">
+                                <tr>
+                                    <td class="clan-member-icon" data-event-click="sort_members('channel')">&nbsp;</td>
+                                    <td class="clan-member-name" data-event-click="sort_members('name')"><str string-id="1272" /></td>
+                                    <td class="clan-member-rank" data-event-click="sort_members('rank')"><str string-id="50" /></td>
+                                    <td class="clan-member-level" data-event-click="sort_members('level')"><str string-id="313" /></td>
+                                    <td class="clan-member-job" data-event-click="sort_members('job_id')"><str string-id="813" /></td>
+                                    <td class="clan-member-contribution" data-event-click="sort_members('points_contribution')"><str string-id="1283" /></td>
+                                    <td class="clan-member-last-seen" data-event-click="sort_members('last_seen')"><str string-id="1277" /></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div style="flex: 1;" class="content-box">
+                            <div style="overflow: hidden scroll; width: 100%; height: 100%">
+                                <listbox data-event-change="selected_member_index = members.size > 0 ? ev.value : 0">
+                                    <listbox-item class="sp-lv-src" data-attr-sp-name="member.name" data-attr-sp-level="member.level" data-attr-sp-job="member.job_id" data-for="member, member_index : members" data-value="member_index" data-class-offline="member.channel == 255">
+                                        <td class="clan-member-icon"><img data-attr-sprite="member.channel == 255 ? 'clan-member-offline' : 'clan-member-online'" /></td>
+                                        <td class="clan-member-name">{{member.name}}<br/></td>
+                                        <td class="clan-member-rank"><str data-attr-clan-rank="member.rank" /></td>
+                                        <td class="clan-member-level">{{member.level}}</td>
+                                        <td class="clan-member-job"><str data-attr-job-name="member.job_id" /></td>
+                                        <td class="clan-member-contribution">{{format_number(member.points_contribution)}}</td>
+                                        <td class="clan-member-last-seen">
+                                            <str data-attr-zone-name="member.zone_id" data-if="member.channel < 255" />
+                                            <span data-if="member.channel == 255" class="last-seen">{{format_seconds_ago(current_time - member.last_seen)}}</span>
+                                        </td>
+                                    </listbox-item>
+                                </listbox>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center">
+                            <div style="flex: 1; padding-left: 4dp">Members: <label class="text" style="width: 80dp;">{{members.size}} / {{max_members}}</label></div>
+                            <button class="default"
+                                data-if="can_invite_member(avatar_rank)"
+                                data-attrif-disabled="members.size >= max_members"
+                                onclick="invite">Invite</button>
+                            <button class="default"
+                                data-if="can_promote_member(avatar_rank)"
+                                data-attrif-disabled="selected_member_index < members.size ? members[selected_member_index].rank >= avatar_rank : true"
+                                onclick="promote_member">Promote</button>
+                            <button class="default"
+                                data-if="can_demote_member(avatar_rank)"
+                                data-attrif-disabled="selected_member_index < members.size ? members[selected_member_index].rank >= avatar_rank || members[selected_member_index].rank == 1 : true"
+                                onclick="demote_member">Demote</button>
+                            <button class="default"
+                                data-if="can_kick_member(avatar_rank)"
+                                data-attrif-disabled="selected_member_index < members.size ? members[selected_member_index].rank >= avatar_rank : true"
+                                onclick="kick_member">Kick</button>
+                        </div>
+                    </div>
+                </panel>
+            </tabset>
+        </div>
+        <div id="sp-lvc-timer"></div>
+        <div id="sp-switch-timer"></div>
+    </body>
+</rml>
