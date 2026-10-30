@@ -1,14 +1,14 @@
 ; Update list for Friend Levels. Upload this next to mod.ini and the files folder.
-version=1.21
-1d25563bbc4c3751bf2fd021241cf8440d6a05b5|mod.ini
+version=1.22
+e5c9343b85ea2fd65272c610817bf7afc79f0405|mod.ini
 0636fd794a009c9d91ff537728ea6c0fe22919f3|files/Data/ui/sp_addons/friend_levels.txt
 6373ac34fdb81ed3bb030b565fbd01cdb2b229fc|files/Data/ui/themes/rose/game/clan.html
 6d47fa05cd173cb56fcd55b9d33fdc7ac208f53d|files/Data/ui/themes/rose/game/friend_list.html
 5adca9c4e0ed63ccde8642f7dd309eca47509607|files/Data/ui/themes/rose/game/group_manager.html
 1448712518c250158022e27eee1408bdd42eadec|files/Data/ui/themes/rose/game/menu.html
-7107b69fefdb768eb7b6e3919c3cf6cd2f99c7a8|files/Data/ui/themes/rose/game/options_bgfx.html
+9ffac394fb7529b7d21c0378cea78e3d1ca2b906|files/Data/ui/themes/rose/game/options_bgfx.html
 54966d0c015deb512bdfcc01e0eb9613942fc2aa|files/Data/ui/themes/rose/game/party_finder.html
-2d3b3ec1fd292a99466dd3d88e88f41744e0bc45|files/Data/ui/themes/rose/game/sp_addons_window.html
+954549bdb0200531ee4ce431fafd1119fc3d2849|files/Data/ui/themes/rose/game/sp_addons_window.html
 d49230528a09bf1485a759277d682bf3a6d98230|files/Data/ui/themes/rose/imgs/sp_addons_menu.dds
 c9735755117dd4fa76a010d9d13085fefdd2dfb1|files/Data/ui/themes/rose/styles/sp_addons_steampunk.css
 d91eeca9018f74fcc0129e8769899178111feb8f|files/Data/ui/themes/rose/styles/sp_addons_steampunk_sprites.css
