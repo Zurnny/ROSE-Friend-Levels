@@ -2,7 +2,7 @@
 
 Real levels in the friend list and Group Manager.
 
-Shows real levels for friends in the friend list and Group Manager. It collects levels from your clan list, your group, the Game Arena and every Party Finder advert you look at, and remembers them (the game sends level 1 for friends when it does not know). Switch: Options > UI > Add-ons.
+Shows real levels for friends in the friend list and Group Manager. It collects levels from your clan list, your group, the Game Arena and every Party Finder advert you look at, and remembers them (the game sends level 1 for friends when it does not know). Switch: the Add-ons button in the menu.
 
 An add-on for [ROSE Mod Launcher](https://github.com/Zurnny/Rose_Mod_Launcher), for the game's default UI and the Steampunk UI theme. Without the launcher, copy the `Data` folder from `files` into your ROSE Online folder.
 
@@ -15,11 +15,14 @@ It updates itself from this repo whenever the launcher opens.
 
 ## Works with the other add-ons
 Every add-on works on its own, and any mix of them works together. Add-ons
-that change the same window (Options, the HUD, the party and group windows)
+that change the same window (the Add-ons window, the menu, the HUD, the party
+and group windows)
 carry the very same copy of that file, and each part only runs while its own
 add-on is installed: each add-on puts a small marker file in
 `Data/ui/sp_addons/`, which the launcher removes again with the add-on.
-In **Options > UI > Add-ons** each installed add-on adds its own line, one
+In the **Add-ons** window (the Add-ons button in the menu) each installed
+add-on adds its own line or settings to its section (Combat, HUD, Party &
+Social, Items & Crafting, Chat, Map & Windows), one
 under the other, in the order they are listed there.
 
 ## Default UI or Steampunk
@@ -32,8 +35,13 @@ theme uses the same file; both keep each other's settings.
 - `Data/ui/themes/rose/game/clan.html`
 - `Data/ui/themes/rose/game/friend_list.html`
 - `Data/ui/themes/rose/game/group_manager.html`
+- `Data/ui/themes/rose/game/menu.html`
 - `Data/ui/themes/rose/game/options_bgfx.html`
 - `Data/ui/themes/rose/game/party_finder.html`
+- `Data/ui/themes/rose/game/sp_addons_window.html`
+- `Data/ui/themes/rose/styles/sp_addons_steampunk.css` (Steampunk look, shared by the add-ons)
+- `Data/ui/themes/rose/styles/sp_addons_steampunk_sprites.css` (Steampunk look, shared by the add-ons)
+- `Data/ui/themes/rose/imgs/sp_addons_menu.dds` (the Add-ons button, default UI)
 - `Data/ui/sp_addons/friend_levels.txt` (marker)
 
 Turning it off in the launcher puts the game's own files back.
