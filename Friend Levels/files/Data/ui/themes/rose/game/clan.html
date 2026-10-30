@@ -81,10 +81,13 @@ end)
 -- it is loaded, and when it opens, each real level goes into sp_level_cache.txt
 -- (for the friend list and the Group Manager) and each class into
 -- sp_job_cache.txt (for the class icons in party and group). It only reads what
--- the window draws.
+-- the window draws: the rows' own text (name, level) and the class the window's
+-- own class label holds, so it adds no data links of its own (extra links on
+-- these rows logged "Data array index out of bounds" when the list got shorter).
 pcall(function()
     local document = document
     local FILE = 'sp_level_cache.txt'
+    local NAME_TD, LEVEL_TD, JOB_TD = 2, 4, 5   -- which cells of a row hold the name, level and class
     local function each(list, fn)
         if not list then return end
         local i = list[0] and 0 or 1
@@ -127,18 +130,31 @@ pcall(function()
             end)
         end
     end
+    -- the text a cell shows (tags taken out)
+    local function text(e)
+        if not e then return '' end
+        local s = tostring(e.inner_rml or '')
+        s = s:gsub('<[^>]*>', ''):gsub('&amp;', '&'):gsub('&lt;', '<'):gsub('&gt;', '>'):gsub('&quot;', '"')
+        return (s:match('^%s*(.-)%s*$'))
+    end
+    local function cells(row)
+        local out = {}
+        each(row:QuerySelectorAll('td'), function(td) out[#out + 1] = td end)
+        return out
+    end
     local function catch()
         local want_lv = not SP_ADDON_ON or SP_ADDON_ON('friend_levels')
         local want_job = not SP_ADDON_ON or SP_ADDON_ON('class_icons')
         if not want_lv and not want_job then return end
         local levels, jobs, any_lv, any_job = {}, {}, false, false
         each(document:QuerySelectorAll('.sp-lv-src'), function(e)
-            local name = e:GetAttribute('sp-name')
-            name = name and tostring(name) or ''
-            if name == '' then return end
-            local lvl = tonumber(e:GetAttribute('sp-level'))
+            local td = cells(e)
+            local name = text(td[NAME_TD])
+            if name == '' or name:find('{{', 1, true) then return end
+            local lvl = tonumber((text(td[LEVEL_TD]):match('%d+')))
             if want_lv and lvl and lvl > 1 then levels[name] = string.format('%d', math.floor(lvl)); any_lv = true end
-            local job = job_name(e:GetAttribute('sp-job'))
+            local label = td[JOB_TD] and td[JOB_TD]:QuerySelector('str')
+            local job = label and job_name(label:GetAttribute('job-name'))
             if want_job and job then jobs[name] = job; any_job = true end
         end)
         if any_lv then merge(FILE, levels, '^(.-)=(%d+)%s*$') end
@@ -344,7 +360,7 @@ end)
                         <div style="flex: 1;" class="content-box">
                             <div style="overflow: hidden scroll; width: 100%; height: 100%">
                                 <listbox data-event-change="selected_member_index = members.size > 0 ? ev.value : 0">
-                                    <listbox-item class="sp-lv-src" data-attr-sp-name="member.name" data-attr-sp-level="member.level" data-attr-sp-job="member.job_id" data-for="member, member_index : members" data-value="member_index" data-class-offline="member.channel == 255">
+                                    <listbox-item class="sp-lv-src" data-for="member, member_index : members" data-value="member_index" data-class-offline="member.channel == 255">
                                         <td class="clan-member-icon"><img data-attr-sprite="member.channel == 255 ? 'clan-member-offline' : 'clan-member-online'" /></td>
                                         <td class="clan-member-name">{{member.name}}<br/></td>
                                         <td class="clan-member-rank"><str data-attr-clan-rank="member.rank" /></td>
