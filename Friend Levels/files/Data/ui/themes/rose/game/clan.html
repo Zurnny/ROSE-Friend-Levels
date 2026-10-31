@@ -76,7 +76,7 @@ pcall(function()
 end)
         </script>
         <script>
--- Level and class catcher (Friend Levels and Class Icons add-ons). This window
+-- Level and class catcher (Friend Levels, Party Levels and Class Icons add-ons). This window
 -- already shows names with their levels and classes (your clan members). Every 5 seconds while
 -- it is loaded, and when it opens, each real level goes into sp_level_cache.txt
 -- (for the friend list and the Group Manager) and each class into
@@ -143,7 +143,7 @@ pcall(function()
         return out
     end
     local function catch()
-        local want_lv = not SP_ADDON_ON or SP_ADDON_ON('friend_levels')
+        local want_lv = not SP_ADDON_ON or SP_ADDON_ON('friend_levels') or SP_ADDON_ON('party_levels')
         local want_job = not SP_ADDON_ON or SP_ADDON_ON('class_icons')
         if not want_lv and not want_job then return end
         local levels, jobs, any_lv, any_job = {}, {}, false, false
@@ -175,6 +175,7 @@ end)
     <script>
 -- Add-on switches (the same script in every add-on window).
 -- SP_ADDON_SWITCH friend_levels
+-- SP_ADDON_SWITCH party_levels
 -- SP_ADDON_SWITCH class_icons
 -- An add-on counts as installed while its marker file
 -- Data/ui/sp_addons/<key>.txt exists. The launcher copies the marker in with
@@ -186,7 +187,7 @@ end)
 pcall(function()
     local BODY = 'game-clan'
     -- key, class put on this window while that add-on is off or not installed ('' = none)
-    local MINE = {{'friend_levels', ''}, {'class_icons', ''}}
+    local MINE = {{'friend_levels', ''}, {'class_icons', ''}, {'party_levels', ''}}
     local installed = {}
     SP_ADDON_INSTALLED = function(key)
         -- the Steampunk UI theme has every add-on built in
